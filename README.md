@@ -1,15 +1,16 @@
 # MCP Confluence Server
 
-Ein TypeScript MCP (Model Context Protocol) Server für die Integration mit Confluence von Atlassian.
+A TypeScript MCP (Model Context Protocol) server for integration with Atlassian Confluence.
 
 ## Features
 
-- 🔧 **Automatische Konfiguration**: Interaktives Setup ohne manuelle Konfigurationsdateien
-- 🔐 **Sichere Authentifizierung**: API-Token-basierte Authentifizierung mit automatischer Erneuerung
-- 🔍 **Vollständige Suchfunktionen**: CQL-basierte Suche und Volltext-Suche
-- 📄 **Seiten- und Bereichsverwaltung**: Zugriff auf Confluence-Inhalte und -Strukturen
-- 🚀 **STDIO-Transport**: Läuft über Standard-Input/Output für MCP-Kompatibilität
-- ⚡ **Rate Limiting**: Eingebauter Schutz vor API-Überlastung
+- 🔧 **Automatic Configuration**: Interactive setup without manual configuration files
+- 🔐 **Secure Authentication**: API token-based authentication with automatic renewal
+- 🔍 **Complete Search Functions**: CQL-based search and full-text search
+- 📄 **Page and Space Management**: Access to Confluence content and structures
+- 🚀 **STDIO Transport**: Runs over Standard Input/Output for MCP compatibility
+- ⚡ **Rate Limiting**: Built-in protection against API overload
+- ✍️ **Write Operations**: Create and update pages with Atlassian Markup Format validation
 
 ## Installation
 
@@ -18,19 +19,19 @@ npm install
 npm run build
 ```
 
-## Verwendung
+## Usage
 
-### MCP-Integration
+### MCP Integration
 
-1. **Kopieren Sie die `mcp.json` in Ihr MCP-Konfigurationsverzeichnis**
-2. **Oder fügen Sie den Server zu Ihrer bestehenden MCP-Konfiguration hinzu:**
+1. **Copy the `mcp.json` to your MCP configuration directory**
+2. **Or add the server to your existing MCP configuration:**
 
 ```json
 {
   "mcpServers": {
     "confluence": {
-      "command": "/pfad/zu/mcp-confluence/start-server.sh",
-      "cwd": "/pfad/zu/mcp-confluence",
+      "command": "/path/to/mcp-confluence/start-server.sh",
+      "cwd": "/path/to/mcp-confluence",
       "args": [],
       "env": {}
     }
@@ -38,77 +39,95 @@ npm run build
 }
 ```
 
-### Direkter Start (für Tests)
+### Direct Start (for testing)
 
 ```bash
 ./start-server.sh
 ```
 
-### Erste Konfiguration
+### Initial Configuration
 
-Der Server startet ohne Konfiguration. Es gibt zwei Möglichkeiten zur Konfiguration:
+The server starts without configuration. There are two ways to configure it:
 
-#### Option 1: Über die KI (Sicherheitshinweis)
-1. Verwenden Sie das `setup_confluence` Tool
-2. Geben Sie Ihre Confluence-URL, E-Mail und API-Token an
-3. Der Server validiert und speichert die Konfiguration automatisch
+#### Option 1: Via AI (Security Notice)
+1. Use the `setup_confluence` tool
+2. Provide your Confluence URL, email, and API token
+3. The server validates and saves the configuration automatically
 
-**⚠️ Sicherheitshinweis:** Das Übermitteln von API-Tokens über die KI stellt ein potentielles Sicherheitsrisiko dar, falls Sie der KI nicht vollständig vertrauen. Wenn Sie Sicherheitsbedenken haben, sollten Sie auch nicht wollen, dass die KI Ihre Confluence-Daten einsehen kann.
+**⚠️ Security Notice:** Transmitting API tokens via AI poses a potential security risk if you don't fully trust the AI. If you have security concerns, you probably also don't want the AI to access your Confluence data.
 
-#### Option 2: Manuelle Konfiguration
-Erstellen Sie eine `config.json` Datei im Projektverzeichnis:
+#### Option 2: Manual Configuration
+Create a `config.json` file in the project directory:
 
 ```json
 {
-  "confluenceBaseUrl": "https://ihr-unternehmen.atlassian.net",
-  "confluenceEmail": "ihre.email@beispiel.com",
-  "confluenceApiToken": "Ihr-API-Token"
+  "confluenceBaseUrl": "https://your-company.atlassian.net",
+  "confluenceEmail": "your.email@example.com",
+  "confluenceApiToken": "Your-API-Token"
 }
 ```
 
-## MCP-Tools
+## MCP Tools
 
-### Konfiguration
+### Configuration
 
-- `setup_confluence`: Konfiguration einrichten oder aktualisieren
-  - `action: "setup"`: Erstkonfiguration
-  - `action: "update_token"`: Token erneuern
-  - `action: "validate"`: Konfiguration validieren
+- `setup_confluence`: Set up or update configuration
+  - `action: "setup"`: Initial configuration
+  - `action: "update_token"`: Renew token
+  - `action: "validate"`: Validate configuration
 
-### Suche
+### Search
 
-- `search_confluence`: CQL-basierte Suche
-- `search_pages`: Volltext-Suche in Seiten
-- `get_recent_pages`: Kürzlich geänderte Seiten
+- `search_confluence`: CQL-based search
+- `search_pages`: Full-text search in pages
+- `get_recent_pages`: Recently modified pages
 
-### Inhalte
+### Content
 
-- `get_page`: Spezifische Seite abrufen
-- `get_space`: Bereich-Informationen
-- `list_spaces`: Alle verfügbaren Bereiche
+- `get_page`: Retrieve specific page
+- `get_space`: Space information
+- `list_spaces`: All available spaces
 
-## MCP-Resources
+### Write Operations
 
-- `confluence://spaces`: Alle verfügbaren Bereiche
-- `confluence://recent-pages`: Kürzlich geänderte Seiten
-- `confluence://user`: Aktuelle Benutzer-Informationen
+- `create_page`: Create new Confluence pages
+  - **⚠️ IMPORTANT**: Content MUST be in Atlassian Markup Format!
+- `update_page`: Update existing Confluence pages
+  - **⚠️ IMPORTANT**: Content MUST be in Atlassian Markup Format!
 
-## Konfiguration
+#### Atlassian Markup Format Examples
 
-Die Konfiguration wird automatisch in `config.json` gespeichert. Diese Datei ist in `.gitignore` enthalten und wird nicht versioniert. Keine manuelle Bearbeitung erforderlich.
+```
+h1. Heading
+*bold text*
+_italic text_
+{info}This is an info box{info}
+{panel}This is a panel{panel}
+{code}code block{code}
+```
 
-## API-Token erstellen
+## MCP Resources
 
-1. Gehen Sie zu https://id.atlassian.com/manage-profile/security/api-tokens
-2. Klicken Sie auf "Create API token"
-3. Geben Sie dem Token einen beschreibenden Namen
-4. Kopieren Sie den Token (er wird nur einmal angezeigt)
-5. Verwenden Sie den Token bei der Konfiguration des Servers
+- `confluence://spaces`: All available spaces
+- `confluence://recent-pages`: Recently modified pages
+- `confluence://user`: Current user information
 
-## Entwicklung
+## Configuration
+
+The configuration is automatically saved in `config.json`. This file is included in `.gitignore` and is not versioned. No manual editing required.
+
+## Creating API Token
+
+1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
+2. Click "Create API token"
+3. Give the token a descriptive name
+4. Copy the token (it will only be displayed once)
+5. Use the token when configuring the server
+
+## Development
 
 ```bash
-# Entwicklungsmodus
+# Development mode
 npm run dev
 
 # Build
@@ -123,21 +142,28 @@ npm run lint
 
 ## Troubleshooting
 
-### Token-Probleme
+### Token Issues
 
-Der Server erkennt automatisch abgelaufene oder ungültige Token und fordert Sie zur Erneuerung auf.
+The server automatically detects expired or invalid tokens and prompts you to renew them.
 
-### Konfigurationsprobleme
+### Configuration Issues
 
-Löschen Sie `config.json` und starten Sie den Server neu für eine Neukonfiguration.
+Delete `config.json` and restart the server for reconfiguration.
 
-### API-Fehler
+### API Errors
 
-Überprüfen Sie:
-- Ihre Berechtigung für die Confluence-Instanz
-- Die Gültigkeit der Base-URL
-- Ihre Netzwerkverbindung
+Check:
+- Your permissions for the Confluence instance
+- The validity of the Base URL
+- Your network connection
 
-## Lizenz
+### Markup Format Errors
+
+If you encounter errors when creating or updating pages:
+- Ensure content is in Atlassian Markup Format, not Markdown
+- The tools will automatically detect common Markdown syntax and provide helpful error messages
+- Refer to the Atlassian Markup Format examples above
+
+## License
 
 MIT

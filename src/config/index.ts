@@ -38,18 +38,18 @@ export class ConfigManager {
         return this.config;
       }
     } catch (error: any) {
-      console.error('Fehler beim Laden der Konfiguration:', error.message);
+      console.error('Error loading configuration:', error.message);
     }
 
-    // Konfiguration existiert nicht oder ist ungültig - Fehler werfen
-    throw new Error('Keine gültige config.json gefunden. Verwenden Sie das setup_confluence Tool zur Konfiguration.');
+    // Configuration does not exist or is invalid - throw error
+    throw new Error('No valid config.json found. Use the setup_confluence tool for configuration.');
   }
 
   private async setupInteractiveConfig(): Promise<Config> {
     console.log('\\n🔧 Confluence MCP Server Setup');
     console.log('===============================\\n');
-    console.log('Willkommen! Dieser Server benötigt eine Confluence-Konfiguration.');
-    console.log('Bitte geben Sie die folgenden Informationen ein:\\n');
+    console.log('Welcome! This server requires a Confluence configuration.');
+    console.log('Please enter the following information:\\n');
 
     const rl = readline.createInterface({
       input: process.stdin,

@@ -40,28 +40,28 @@ export class ConfluenceClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          console.log('🔐 Authentifizierungsfehler erkannt. Token möglicherweise abgelaufen.');
+          console.log('🔐 Authentication error detected. Token may have expired.');
           
           try {
             await configManager.requestTokenRenewal();
-            // Aktualisiere Client mit neuer Konfiguration
+            // Update client with new configuration
             this.config = configManager.getConfig();
             this.auth = new ConfluenceAuth(this.config);
             this.initializeClient();
             
-            // Wiederhole ursprüngliche Anfrage
+            // Retry original request
             return this.client.request(error.config!);
           } catch (renewalError) {
-            throw new TokenExpiredError('Token-Erneuerung fehlgeschlagen');
+            throw new TokenExpiredError('Token renewal failed');
           }
         }
         
         if (error.response?.status === 403) {
-          throw new AuthenticationError('Zugriff verweigert. Überprüfen Sie Ihre Berechtigungen.');
+          throw new AuthenticationError('Access denied. Check your permissions.');
         }
         
         if (error.response?.status === 429) {
-          throw new RateLimitError('Rate Limit überschritten. Bitte warten Sie einen Moment.');
+          throw new RateLimitError('Rate limit exceeded. Please wait a moment.');
         }
         
         throw new ConfluenceAPIError(
@@ -85,7 +85,7 @@ export class ConfluenceClient {
       }
 
       if (requestCount >= this.config.rateLimitRequests) {
-        throw new RateLimitError('Client-seitiges Rate Limit überschritten');
+        throw new RateLimitError('Client-side rate limit exceeded');
       }
 
       requestCount++;
@@ -155,5 +155,56 @@ export class ConfluenceClient {
   async searchPages(query: string, limit = 25): Promise<ConfluenceSearchResult> {
     const cql = `type=page AND (title ~ "${query}" OR text ~ "${query}")`;
     return this.searchContent(cql, limit);
+  }
+
+  async createPage(spaceKey: string, title: string, content: string, parentId?: string): Promise<ConfluencePage> {
+    const pageData = {
+      type: 'page',
+      title,
+      space: {
+        key: spaceKey,
+      },
+      body: {
+        storage: {
+          value: content,
+          representation: 'storage',
+        },
+      },
+      ...(parentId && {
+        ancestors: [
+          {
+            id: parentId,
+          },
+        ],
+      }),
+    };
+
+    const response = await this.client.post('/content', pageData);
+    return response.data;
+  }
+
+  async updatePage(pageId: string, title?: string, content?: string): Promise<ConfluencePage> {
+    // Erst die aktuelle Seite abrufen, um die Versionsnummer zu erhalten
+    const currentPage = await this.getPage(pageId, ['version']);
+    
+    const updateData = {
+      id: pageId,
+      type: 'page',
+      version: {
+        number: currentPage.version.number + 1,
+      },
+      ...(title && { title }),
+      ...(content && {
+        body: {
+          storage: {
+            value: content,
+            representation: 'storage',
+          },
+        },
+      }),
+    };
+
+    const response = await this.client.put(`/content/${pageId}`, updateData);
+    return response.data;
   }
 }

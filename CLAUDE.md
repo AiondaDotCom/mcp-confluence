@@ -50,13 +50,13 @@ npm run format
 - Main MCP server class implementing the Model Context Protocol
 - Handles tool registration, resource management, and request routing
 - Manages Confluence client lifecycle and configuration state
-- Implements 7 tools and 3 resources for Confluence API access
+- Implements 9 tools and 3 resources for Confluence API access
 
 **Confluence Client (`src/confluence/client.ts`)**
 - Axios-based HTTP client for Confluence REST API
 - Handles authentication, rate limiting, and error recovery
 - Implements automatic token refresh and retry logic
-- Supports CQL queries, page operations, and space management
+- Supports CQL queries, page operations, space management, and write operations
 
 **Configuration System (`src/config/index.ts`)**
 - Zod-based configuration validation and management
@@ -74,15 +74,22 @@ npm run format
 
 **MCP Integration**
 - Implements MCP SDK for STDIO transport
-- Provides 7 tools: search, page/space operations, setup
+- Provides 9 tools: search, page/space operations, setup, create/update pages
 - Exposes 3 resources: spaces, recent pages, user info
-- Error handling with user-friendly German messages
+- Error handling with user-friendly English messages
 
 **API Operations**
 - CQL-based content search with flexible queries
 - Page retrieval with expandable fields
 - Space listing and information retrieval
 - Recent pages tracking and full-text search
+- Page creation and updates with Atlassian Markup Format validation
+
+**Write Operations with Format Validation**
+- Create and update Confluence pages
+- Automatic detection of Markdown syntax with helpful error messages
+- Strong warnings about Atlassian Markup Format requirements
+- Examples provided for proper format usage
 
 ### Project Structure
 
@@ -130,4 +137,27 @@ src/
 - Use `setup_confluence` tool for initial configuration
 - Supports action types: `setup`, `update_token`, `validate`
 - Rate limiting configured for 100 requests per minute
-- All user-facing messages are in German
+- All user-facing messages are in English
+
+## Atlassian Markup Format
+
+When working with page content, always use Atlassian Markup Format:
+
+**Correct Format:**
+```
+h1. Heading
+*bold text*
+_italic text_
+{info}Info box content{info}
+{panel}Panel content{panel}
+{code}code block{code}
+```
+
+**Avoid Markdown:**
+```
+# Heading (WRONG)
+**bold text** (WRONG)
+*italic text* (WRONG)
+```
+
+The tools automatically detect Markdown syntax and provide helpful error messages with format examples.

@@ -38,32 +38,32 @@ export class ConfluenceMCPServer {
     }
 
     try {
-      // Versuche Config zu laden ohne interaktives Setup
+      // Try to load config without interactive setup
       this.config = await configManager.loadConfig();
       this.confluenceClient = new ConfluenceClient(this.config);
     } catch (error: any) {
-      // Config nicht verfügbar oder ungültig
-      throw new Error('Keine gültige Konfiguration gefunden. Bitte verwenden Sie das setup_confluence Tool um die Verbindung zu konfigurieren.');
+      // Config not available or invalid
+      throw new Error('No valid configuration found. Please use the setup_confluence tool to configure the connection.');
     }
   }
 
   private setupHandlers() {
-    // Tools-Handler
+    // Tools Handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
           name: 'search_confluence',
-          description: 'Durchsucht Confluence-Inhalte mit CQL (Confluence Query Language)',
+          description: 'Search Confluence content using CQL (Confluence Query Language)',
           inputSchema: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
-                description: 'CQL-Suchanfrage (z.B. "type=page AND space=DEMO")',
+                description: 'CQL search query (e.g. "type=page AND space=DEMO")',
               },
               limit: {
                 type: 'number',
-                description: 'Maximale Anzahl der Ergebnisse (Standard: 25)',
+                description: 'Maximum number of results (default: 25)',
                 default: 25,
               },
             },
@@ -72,18 +72,18 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'get_page',
-          description: 'Ruft eine spezifische Confluence-Seite ab',
+          description: 'Retrieve a specific Confluence page',
           inputSchema: {
             type: 'object',
             properties: {
               pageId: {
                 type: 'string',
-                description: 'ID der Confluence-Seite',
+                description: 'Confluence page ID',
               },
               expand: {
                 type: 'array',
                 items: { type: 'string' },
-                description: 'Zu erweiternde Felder (z.B. ["body.storage", "version"])',
+                description: 'Fields to expand (e.g. ["body.storage", "version"])',
               },
             },
             required: ['pageId'],
@@ -151,6 +151,54 @@ export class ConfluenceMCPServer {
           },
         },
         {
+          name: 'create_page',
+          description: '⚠️ WICHTIG: Erstellt eine neue Confluence-Seite. Content MUSS im Atlassian Markup Format vorliegen! Standard-Markdown wird NICHT unterstützt!',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              spaceKey: {
+                type: 'string',
+                description: 'Schlüssel des Confluence-Bereichs',
+              },
+              title: {
+                type: 'string',
+                description: 'Titel der neuen Seite',
+              },
+              content: {
+                type: 'string',
+                description: '⚠️ KRITISCH: Seiteninhalt im Atlassian Markup Format (nicht Markdown!). Beispiel: {info}Dies ist eine Info-Box{info}',
+              },
+              parentId: {
+                type: 'string',
+                description: 'ID der übergeordneten Seite (optional)',
+              },
+            },
+            required: ['spaceKey', 'title', 'content'],
+          },
+        },
+        {
+          name: 'update_page',
+          description: '⚠️ WICHTIG: Aktualisiert eine bestehende Confluence-Seite. Content MUSS im Atlassian Markup Format vorliegen! Standard-Markdown wird NICHT unterstützt!',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              pageId: {
+                type: 'string',
+                description: 'ID der zu aktualisierenden Seite',
+              },
+              title: {
+                type: 'string',
+                description: 'Neuer Titel der Seite (optional)',
+              },
+              content: {
+                type: 'string',
+                description: '⚠️ KRITISCH: Neuer Seiteninhalt im Atlassian Markup Format (nicht Markdown!). Beispiel: {panel}Inhalt{panel}',
+              },
+            },
+            required: ['pageId', 'content'],
+          },
+        },
+        {
           name: 'setup_confluence',
           description: 'Konfiguriert oder rekonfiguriert die Confluence-Verbindung',
           inputSchema: {
@@ -209,12 +257,12 @@ export class ConfluenceMCPServer {
       const { name, arguments: args } = request.params;
 
       try {
-        // Spezielle Behandlung für setup_confluence - keine Konfiguration erforderlich
+        // Special handling for setup_confluence - no configuration required
         if (name === 'setup_confluence') {
           return await this.handleSetupConfluence(args);
         }
 
-        // Für alle anderen Tools: Stelle sicher, dass Konfiguration vorhanden ist
+        // For all other tools: ensure configuration is present
         await this.ensureConfigured();
 
         switch (name) {
@@ -230,6 +278,10 @@ export class ConfluenceMCPServer {
             return await this.handleSearchPages(args);
           case 'get_recent_pages':
             return await this.handleGetRecentPages(args);
+          case 'create_page':
+            return await this.handleCreatePage(args);
+          case 'update_page':
+            return await this.handleUpdatePage(args);
           default:
             throw new Error(`Unbekanntes Tool: ${name}`);
         }
@@ -387,6 +439,109 @@ export class ConfluenceMCPServer {
     };
   }
 
+  private async handleCreatePage(args: any) {
+    const schema = z.object({
+      spaceKey: z.string(),
+      title: z.string(),
+      content: z.string(),
+      parentId: z.string().optional(),
+    });
+
+    const { spaceKey, title, content, parentId } = schema.parse(args);
+
+    // Strong warning about Atlassian Markup Format
+    if (content.includes('```') || content.includes('##') || content.includes('**')) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: '⚠️ ERROR: The provided content appears to contain Markdown! Confluence uses Atlassian Markup Format, not standard Markdown.\n\n' +
+                  'Examples of Atlassian Markup:\n' +
+                  '- Headings: h1. Heading\n' +
+                  '- Bold: *bold*\n' +
+                  '- Italic: _italic_\n' +
+                  '- Info Box: {info}Content{info}\n' +
+                  '- Panel: {panel}Content{panel}\n' +
+                  '- Code: {code}code{code}\n\n' +
+                  'Please convert the content to Atlassian Markup Format!',
+          },
+        ],
+      };
+    }
+
+    try {
+      const page = await this.confluenceClient!.createPage(spaceKey, title, content, parentId);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Page "${title}" successfully created!\n\n${JSON.stringify(page, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ Error creating page: ${error.message}\n\n⚠️ Please ensure the content is in Atlassian Markup Format!`,
+          },
+        ],
+      };
+    }
+  }
+
+  private async handleUpdatePage(args: any) {
+    const schema = z.object({
+      pageId: z.string(),
+      title: z.string().optional(),
+      content: z.string(),
+    });
+
+    const { pageId, title, content } = schema.parse(args);
+
+    // Strong warning about Atlassian Markup Format
+    if (content.includes('```') || content.includes('##') || content.includes('**')) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: '⚠️ ERROR: The provided content appears to contain Markdown! Confluence uses Atlassian Markup Format, not standard Markdown.\n\n' +
+                  'Examples of Atlassian Markup:\n' +
+                  '- Headings: h1. Heading\n' +
+                  '- Bold: *bold*\n' +
+                  '- Italic: _italic_\n' +
+                  '- Info Box: {info}Content{info}\n' +
+                  '- Panel: {panel}Content{panel}\n' +
+                  '- Code: {code}code{code}\n\n' +
+                  'Please convert the content to Atlassian Markup Format!',
+          },
+        ],
+      };
+    }
+
+    try {
+      const page = await this.confluenceClient!.updatePage(pageId, title, content);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Page successfully updated!\n\n${JSON.stringify(page, null, 2)}`,
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `❌ Error updating page: ${error.message}\n\n⚠️ Please ensure the content is in Atlassian Markup Format!`,
+          },
+        ],
+      };
+    }
+  }
+
   private async handleSetupConfluence(args: any) {
     const schema = z.object({
       action: z.enum(['setup', 'update_token', 'validate']),
@@ -401,7 +556,7 @@ export class ConfluenceMCPServer {
       switch (action) {
         case 'setup':
           if (!confluenceBaseUrl || !confluenceEmail || !confluenceApiToken) {
-            throw new Error('Für setup sind confluenceBaseUrl, confluenceEmail und confluenceApiToken erforderlich');
+            throw new Error('For setup, confluenceBaseUrl, confluenceEmail and confluenceApiToken are required');
           }
           
           const newConfig: Config = {
@@ -423,17 +578,17 @@ export class ConfluenceMCPServer {
               content: [
                 {
                   type: 'text',
-                  text: '✅ Confluence-Konfiguration erfolgreich gespeichert und validiert!',
+                  text: '✅ Confluence configuration successfully saved and validated!',
                 },
               ],
             };
           } else {
-            throw new Error('Konfiguration ungültig - bitte überprüfen Sie Ihre Eingaben');
+            throw new Error('Configuration invalid - please check your inputs');
           }
 
         case 'update_token':
           if (!confluenceApiToken) {
-            throw new Error('Für update_token ist confluenceApiToken erforderlich');
+            throw new Error('For update_token, confluenceApiToken is required');
           }
           
           await configManager.updateToken(confluenceApiToken);
@@ -444,7 +599,7 @@ export class ConfluenceMCPServer {
             content: [
               {
                 type: 'text',
-                text: '✅ API-Token erfolgreich aktualisiert!',
+                text: '✅ API token successfully updated!',
               },
             ],
           };
@@ -458,21 +613,21 @@ export class ConfluenceMCPServer {
               {
                 type: 'text',
                 text: validationResult 
-                  ? '✅ Konfiguration ist gültig'
-                  : '❌ Konfiguration ist ungültig - Token möglicherweise abgelaufen',
+                  ? '✅ Configuration is valid'
+                  : '❌ Configuration is invalid - token may have expired',
               },
             ],
           };
 
         default:
-          throw new Error(`Unbekannte Aktion: ${action}`);
+          throw new Error(`Unknown action: ${action}`);
       }
     } catch (error: any) {
       return {
         content: [
           {
             type: 'text',
-            text: `❌ Fehler bei Konfiguration: ${error.message}`,
+            text: `❌ Configuration error: ${error.message}`,
           },
         ],
       };
@@ -523,7 +678,7 @@ export class ConfluenceMCPServer {
       const transport = new StdioServerTransport();
       await this.server.connect(transport);
     } catch (error: any) {
-      console.error('❌ Fehler beim Starten des Servers:', error.message);
+      console.error('❌ Error starting server:', error.message);
       process.exit(1);
     }
   }
