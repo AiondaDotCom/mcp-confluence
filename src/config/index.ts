@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { promisify } from 'util';
 import readline from 'readline';
+import os from 'os';
 
 const configSchema = z.object({
   confluenceBaseUrl: z.string().url(),
@@ -22,8 +23,13 @@ export class ConfigManager {
   private config: Config | null = null;
 
   constructor(configDir?: string) {
-    const baseDir = configDir || process.cwd();
-    this.configPath = path.join(baseDir, 'config.json');
+    if (configDir) {
+      this.configPath = path.join(configDir, 'config.json');
+    } else {
+      // Use home directory for global configuration
+      const homeDir = os.homedir();
+      this.configPath = path.join(homeDir, '.mcp-confluence-config.json');
+    }
   }
 
   async loadConfig(): Promise<Config> {
@@ -42,7 +48,7 @@ export class ConfigManager {
     }
 
     // Configuration does not exist or is invalid - throw error
-    throw new Error('No valid config.json found. Use the setup_confluence tool for configuration.');
+    throw new Error('No valid configuration found. Use the setup_confluence tool for configuration.');
   }
 
   private async setupInteractiveConfig(): Promise<Config> {

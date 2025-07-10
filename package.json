@@ -1,6 +1,6 @@
 {
   "name": "@aiondadotcom/mcp-confluence-server",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MCP server for Confluence API integration with Atlassian Cloud",
   "main": "dist/index.js",
   "type": "module",
