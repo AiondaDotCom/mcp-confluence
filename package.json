@@ -1,6 +1,6 @@
 {
   "name": "@aiondadotcom/mcp-confluence-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for Confluence API integration with Atlassian Cloud",
   "main": "dist/index.js",
   "type": "module",
@@ -53,6 +53,9 @@
     "dist/",
     "README.md",
     "LICENSE",
-    "mcp.example.json"
+    "mcp.example.json",
+    "mcp.windows.json",
+    "install.bat",
+    "start-server.bat"
   ]
 }

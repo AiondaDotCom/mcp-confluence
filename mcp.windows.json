@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "start-server.bat",
+      "args": [],
+      "env": {}
+    }
+  }
+}
