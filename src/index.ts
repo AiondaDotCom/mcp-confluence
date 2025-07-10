@@ -8,6 +8,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('❌ Fehler beim Starten des MCP-Servers:', error);
+  console.error('❌ Error starting MCP server:', error);
   process.exit(1);
 });
