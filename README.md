@@ -16,23 +16,54 @@ A TypeScript MCP (Model Context Protocol) server for integration with Atlassian 
 
 ### Option 1: NPX (Recommended)
 
-No installation required! Use npx to run the server directly:
+The easiest way to use the MCP Confluence server is with npx. The configuration is automatically saved in your home directory and persists between runs.
 
-```json
-{
-  "mcpServers": {
-    "confluence": {
-      "command": "npx",
-      "args": ["@aiondadotcom/mcp-confluence-server"],
-      "env": {}
-    }
-  }
-}
-```
+#### Prerequisites
+- Install [Node.js](https://nodejs.org/en/download) (version 18 or higher)
 
-### Option 2: Manual Installation (Windows)
+#### Setup Steps
 
-For Windows users who want to preserve configuration between runs, manual installation is recommended:
+1. **Add to Claude Desktop configuration:**
+   - Open your Claude Desktop config file:
+     - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+     - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+     - **Linux**: `~/.config/Claude/claude_desktop_config.json`
+   
+   - Add the "confluence" entry to your `mcpServers` configuration:
+   ```json
+   {
+     "mcpServers": {
+       "confluence": {
+         "command": "npx",
+         "args": ["@aiondadotcom/mcp-confluence-server"]
+       }
+     }
+   }
+   ```
+
+2. **Restart Claude Desktop:**
+   - Close Claude Desktop completely
+   - On Windows, also end the Claude process in Task Manager (it runs in the background)
+   - Restart Claude Desktop
+
+3. **Configure your Confluence credentials:**
+   - The MCP server will prompt you for your credentials on first use
+   - You'll need to create an API token in Confluence:
+     - Go to [Atlassian API Tokens](https://id.atlassian.com/manage-profile/security/api-tokens)
+     - Click "Create API token"
+     - Give it a name (e.g., "MCP")
+     - Copy the token
+   - The AI will ask for:
+     - Your Confluence URL (e.g., `https://your-company.atlassian.net`)
+     - Your email address
+     - Your API token
+   - The configuration will be automatically saved in `~/.mcp-confluence-config.json`
+
+That's it! The server will now work with Claude Desktop and your configuration will persist between sessions.
+
+### Option 2: Manual Installation (Alternative)
+
+Alternative installation method for users who prefer manual setup:
 
 1. **Install the package globally:**
    ```cmd
@@ -125,19 +156,20 @@ npx @aiondadotcom/mcp-confluence-server
 ./start-server.sh
 ```
 
-### Initial Configuration
+### Configuration
 
-The server starts without configuration. There are two ways to configure it:
+The server automatically handles configuration through the `setup_confluence` tool. Configuration is saved in `~/.mcp-confluence-config.json` and persists between sessions.
 
-#### Option 1: Via AI (Security Notice)
-1. Use the `setup_confluence` tool
-2. Provide your Confluence URL, email, and API token
-3. The server validates and saves the configuration automatically
+#### Automatic Setup
+When you first use the server, it will prompt you for:
+- Your Confluence URL (e.g., `https://your-company.atlassian.net`)
+- Your email address
+- Your API token
 
-**⚠️ Security Notice:** Transmitting API tokens via AI poses a potential security risk if you don't fully trust the AI. If you have security concerns, you probably also don't want the AI to access your Confluence data.
+The configuration is automatically validated and saved.
 
-#### Option 2: Manual Configuration
-Create a `config.json` file in the project directory:
+#### Manual Configuration (Optional)
+You can also manually create `~/.mcp-confluence-config.json`:
 
 ```json
 {
@@ -192,9 +224,9 @@ _italic text_
 - `confluence://recent-pages`: Recently modified pages
 - `confluence://user`: Current user information
 
-## Configuration
+## Configuration Storage
 
-The configuration is automatically saved in `config.json`. This file is included in `.gitignore` and is not versioned. No manual editing required.
+The configuration is automatically saved in `~/.mcp-confluence-config.json` in your home directory. This ensures the configuration persists between sessions and works with npx. No manual editing required.
 
 ## Creating API Token
 
@@ -228,7 +260,7 @@ The server automatically detects expired or invalid tokens and prompts you to re
 
 ### Configuration Issues
 
-Delete `config.json` and restart the server for reconfiguration.
+Delete `~/.mcp-confluence-config.json` and restart the server for reconfiguration.
 
 ### API Errors
 
