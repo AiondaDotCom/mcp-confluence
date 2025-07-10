@@ -184,7 +184,7 @@ export class ConfluenceClient {
   }
 
   async updatePage(pageId: string, title?: string, content?: string): Promise<ConfluencePage> {
-    // Erst die aktuelle Seite abrufen, um die Versionsnummer zu erhalten
+    // First retrieve the current page to get the version number
     const currentPage = await this.getPage(pageId, ['version']);
     
     const updateData = {

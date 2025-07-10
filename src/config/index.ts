@@ -59,9 +59,9 @@ export class ConfigManager {
     const question = promisify(rl.question).bind(rl);
 
     try {
-      const confluenceBaseUrl = (await question('Confluence Base URL (z.B. https://your-domain.atlassian.net): ')) as unknown as string;
-      const confluenceEmail = (await question('Ihre E-Mail-Adresse: ')) as unknown as string;
-      const confluenceApiToken = (await question('Ihr API-Token: ')) as unknown as string;
+      const confluenceBaseUrl = (await question('Confluence Base URL (e.g. https://your-domain.atlassian.net): ')) as unknown as string;
+      const confluenceEmail = (await question('Your email address: ')) as unknown as string;
+      const confluenceApiToken = (await question('Your API token: ')) as unknown as string;
       const logLevelInput = (await question('Log Level (debug/info/warn/error) [info]: ')) as unknown as string;
       const logLevel = logLevelInput || 'info';
 
@@ -74,19 +74,19 @@ export class ConfigManager {
         rateLimitWindowMs: 60000,
       };
 
-      // Validierung der Konfiguration
+      // Configuration validation
       const validatedConfig = configSchema.parse(config);
       
-      console.log('\\n🔍 Teste Konfiguration...');
+      console.log('\\n🔍 Testing configuration...');
       const isValid = await this.validateConfig(validatedConfig);
       
       if (isValid) {
         validatedConfig.lastValidated = new Date().toISOString();
         await this.saveConfig(validatedConfig);
-        console.log('✅ Konfiguration erfolgreich gespeichert!');
+        console.log('✅ Configuration successfully saved!');
         return validatedConfig;
       } else {
-        console.log('❌ Konfiguration ungültig. Bitte versuchen Sie es erneut.');
+        console.log('❌ Configuration invalid. Please try again.');
         return await this.setupInteractiveConfig();
       }
     } finally {
@@ -132,14 +132,14 @@ export class ConfigManager {
       lastValidated: new Date().toISOString(),
     };
 
-    console.log('🔍 Teste neuen Token...');
+    console.log('🔍 Testing new token...');
     const isValid = await this.validateConfig(updatedConfig);
     
     if (isValid) {
       await this.saveConfig(updatedConfig);
-      console.log('✅ Token erfolgreich aktualisiert!');
+      console.log('✅ Token successfully updated!');
     } else {
-      throw new Error('Neuer Token ist ungültig');
+      throw new Error('New token is invalid');
     }
   }
 
@@ -156,8 +156,8 @@ export class ConfigManager {
   }
 
   async requestTokenRenewal(): Promise<void> {
-    console.log('⚠️  Ihr API-Token ist abgelaufen oder wird bald ablaufen.');
-    console.log('Bitte erstellen Sie einen neuen Token in Ihrem Atlassian-Konto:');
+    console.log('⚠️  Your API token has expired or will expire soon.');
+    console.log('Please create a new token in your Atlassian account:');
     console.log('https://id.atlassian.com/manage-profile/security/api-tokens\\n');
     
     const rl = readline.createInterface({
@@ -168,7 +168,7 @@ export class ConfigManager {
     const question = promisify(rl.question).bind(rl);
 
     try {
-      const newToken = (await question('Neuer API-Token: ')) as unknown as string;
+      const newToken = (await question('New API token: ')) as unknown as string;
       await this.updateToken(newToken.trim());
     } finally {
       rl.close();
@@ -185,7 +185,7 @@ export class ConfigManager {
   async ensureValidConfig(): Promise<Config> {
     const config = await this.loadConfig();
     
-    // Prüfe ob Token abgelaufen ist
+    // Check if token has expired
     if (await this.isTokenExpired()) {
       await this.requestTokenRenewal();
       return this.getConfig();
@@ -197,14 +197,14 @@ export class ConfigManager {
     const hoursOld = (now.getTime() - lastValidated.getTime()) / (1000 * 60 * 60);
     
     if (hoursOld > 24) {
-      console.log('🔍 Validiere Konfiguration...');
+      console.log('🔍 Validating configuration...');
       const isValid = await this.validateConfig(config);
       
       if (isValid) {
         config.lastValidated = new Date().toISOString();
         await this.saveConfig(config);
       } else {
-        console.log('❌ Token ist nicht mehr gültig.');
+        console.log('❌ Token is no longer valid.');
         await this.requestTokenRenewal();
         return this.getConfig();
       }

@@ -91,13 +91,13 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'get_space',
-          description: 'Ruft Informationen über einen Confluence-Bereich ab',
+          description: 'Retrieve information about a Confluence space',
           inputSchema: {
             type: 'object',
             properties: {
               spaceKey: {
                 type: 'string',
-                description: 'Schlüssel des Confluence-Bereichs',
+                description: 'Confluence space key',
               },
             },
             required: ['spaceKey'],
@@ -105,13 +105,13 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'list_spaces',
-          description: 'Listet alle verfügbaren Confluence-Bereiche auf',
+          description: 'List all available Confluence spaces',
           inputSchema: {
             type: 'object',
             properties: {
               limit: {
                 type: 'number',
-                description: 'Maximale Anzahl der Ergebnisse (Standard: 25)',
+                description: 'Maximum number of results (default: 25)',
                 default: 25,
               },
             },
@@ -119,17 +119,17 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'search_pages',
-          description: 'Durchsucht Confluence-Seiten nach Titel oder Inhalt',
+          description: 'Search Confluence pages by title or content',
           inputSchema: {
             type: 'object',
             properties: {
               query: {
                 type: 'string',
-                description: 'Suchbegriff für Titel oder Inhalt',
+                description: 'Search term for title or content',
               },
               limit: {
                 type: 'number',
-                description: 'Maximale Anzahl der Ergebnisse (Standard: 25)',
+                description: 'Maximum number of results (default: 25)',
                 default: 25,
               },
             },
@@ -138,13 +138,13 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'get_recent_pages',
-          description: 'Ruft die zuletzt geänderten Seiten ab',
+          description: 'Retrieve recently modified pages',
           inputSchema: {
             type: 'object',
             properties: {
               limit: {
                 type: 'number',
-                description: 'Maximale Anzahl der Ergebnisse (Standard: 10)',
+                description: 'Maximum number of results (default: 10)',
                 default: 10,
               },
             },
@@ -152,25 +152,25 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'create_page',
-          description: '⚠️ WICHTIG: Erstellt eine neue Confluence-Seite. Content MUSS im Atlassian Markup Format vorliegen! Standard-Markdown wird NICHT unterstützt!',
+          description: '⚠️ IMPORTANT: Creates a new Confluence page. Content MUST be in Atlassian Markup Format! Standard Markdown is NOT supported!',
           inputSchema: {
             type: 'object',
             properties: {
               spaceKey: {
                 type: 'string',
-                description: 'Schlüssel des Confluence-Bereichs',
+                description: 'Confluence space key',
               },
               title: {
                 type: 'string',
-                description: 'Titel der neuen Seite',
+                description: 'Title of the new page',
               },
               content: {
                 type: 'string',
-                description: '⚠️ KRITISCH: Seiteninhalt im Atlassian Markup Format (nicht Markdown!). Beispiel: {info}Dies ist eine Info-Box{info}',
+                description: '⚠️ CRITICAL: Page content in Atlassian Markup Format (not Markdown!). Example: {info}This is an info box{info}',
               },
               parentId: {
                 type: 'string',
-                description: 'ID der übergeordneten Seite (optional)',
+                description: 'ID of the parent page (optional)',
               },
             },
             required: ['spaceKey', 'title', 'content'],
@@ -178,21 +178,21 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'update_page',
-          description: '⚠️ WICHTIG: Aktualisiert eine bestehende Confluence-Seite. Content MUSS im Atlassian Markup Format vorliegen! Standard-Markdown wird NICHT unterstützt!',
+          description: '⚠️ IMPORTANT: Updates an existing Confluence page. Content MUST be in Atlassian Markup Format! Standard Markdown is NOT supported!',
           inputSchema: {
             type: 'object',
             properties: {
               pageId: {
                 type: 'string',
-                description: 'ID der zu aktualisierenden Seite',
+                description: 'ID of the page to update',
               },
               title: {
                 type: 'string',
-                description: 'Neuer Titel der Seite (optional)',
+                description: 'New title of the page (optional)',
               },
               content: {
                 type: 'string',
-                description: '⚠️ KRITISCH: Neuer Seiteninhalt im Atlassian Markup Format (nicht Markdown!). Beispiel: {panel}Inhalt{panel}',
+                description: '⚠️ CRITICAL: New page content in Atlassian Markup Format (not Markdown!). Example: {panel}Content{panel}',
               },
             },
             required: ['pageId', 'content'],
@@ -200,26 +200,26 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'setup_confluence',
-          description: 'Konfiguriert oder rekonfiguriert die Confluence-Verbindung',
+          description: 'Configure or reconfigure the Confluence connection',
           inputSchema: {
             type: 'object',
             properties: {
               action: {
                 type: 'string',
                 enum: ['setup', 'update_token', 'validate'],
-                description: 'Aktion: setup (Erstkonfiguration), update_token (Token erneuern), validate (Konfiguration prüfen)',
+                description: 'Action: setup (initial configuration), update_token (renew token), validate (check configuration)',
               },
               confluenceBaseUrl: {
                 type: 'string',
-                description: 'Confluence Base URL (nur bei setup)',
+                description: 'Confluence Base URL (only for setup)',
               },
               confluenceEmail: {
                 type: 'string',
-                description: 'E-Mail-Adresse (nur bei setup)',
+                description: 'Email address (only for setup)',
               },
               confluenceApiToken: {
                 type: 'string',
-                description: 'API-Token (bei setup und update_token)',
+                description: 'API token (for setup and update_token)',
               },
             },
             required: ['action'],
@@ -234,19 +234,19 @@ export class ConfluenceMCPServer {
         {
           uri: 'confluence://spaces',
           name: 'Confluence Spaces',
-          description: 'Liste aller verfügbaren Confluence-Bereiche',
+          description: 'List of all available Confluence spaces',
           mimeType: 'application/json',
         },
         {
           uri: 'confluence://recent-pages',
           name: 'Recent Pages',
-          description: 'Kürzlich aktualisierte Seiten',
+          description: 'Recently updated pages',
           mimeType: 'application/json',
         },
         {
           uri: 'confluence://user',
           name: 'Current User',
-          description: 'Informationen über den aktuellen Benutzer',
+          description: 'Information about the current user',
           mimeType: 'application/json',
         },
       ],
@@ -283,14 +283,14 @@ export class ConfluenceMCPServer {
           case 'update_page':
             return await this.handleUpdatePage(args);
           default:
-            throw new Error(`Unbekanntes Tool: ${name}`);
+            throw new Error(`Unknown tool: ${name}`);
         }
       } catch (error: any) {
         return {
           content: [
             {
               type: 'text',
-              text: `❌ Fehler beim Ausführen des Tools ${name}: ${error.message}`,
+              text: `❌ Error executing tool ${name}: ${error.message}`,
             },
           ],
         };
@@ -312,7 +312,7 @@ export class ConfluenceMCPServer {
           case 'confluence://user':
             return await this.handleGetUserResource();
           default:
-            throw new Error(`Unbekannte Resource: ${uri}`);
+            throw new Error(`Unknown resource: ${uri}`);
         }
       } catch (error: any) {
         return {
@@ -320,7 +320,7 @@ export class ConfluenceMCPServer {
             {
               uri,
               mimeType: 'text/plain',
-              text: `❌ Fehler beim Laden der Resource: ${error.message}`,
+              text: `❌ Error loading resource: ${error.message}`,
             },
           ],
         };
