@@ -14,14 +14,50 @@ A TypeScript MCP (Model Context Protocol) server for integration with Atlassian 
 
 ## Installation
 
+### Option 1: NPX (Recommended)
+
+No installation required! Use npx to run the server directly:
+
+```json
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "npx",
+      "args": ["@aiondadotcom/mcp-confluence-server"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Option 2: Local Development
+
 ```bash
+git clone https://github.com/AiondaDotCom/mcp-confluence.git
+cd mcp-confluence
 npm install
 npm run build
 ```
 
 ## Usage
 
-### MCP Integration
+### MCP Integration with NPX
+
+Add the server to your MCP configuration using npx:
+
+```json
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "npx",
+      "args": ["@aiondadotcom/mcp-confluence-server"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Local Development Setup
 
 1. **Copy the `mcp.json` to your MCP configuration directory**
 2. **Or add the server to your existing MCP configuration:**
@@ -42,6 +78,10 @@ npm run build
 ### Direct Start (for testing)
 
 ```bash
+# NPX
+npx @aiondadotcom/mcp-confluence-server
+
+# Local development
 ./start-server.sh
 ```
 
@@ -163,6 +203,19 @@ If you encounter errors when creating or updating pages:
 - Ensure content is in Atlassian Markup Format, not Markdown
 - The tools will automatically detect common Markdown syntax and provide helpful error messages
 - Refer to the Atlassian Markup Format examples above
+
+## NPM Package
+
+This server is published as `@aiondadotcom/mcp-confluence-server` on NPM.
+
+- **Package**: https://www.npmjs.com/package/@aiondadotcom/mcp-confluence-server
+- **Repository**: https://github.com/AiondaDotCom/mcp-confluence
+
+### Installation Options
+
+1. **NPX (No installation)**: `npx @aiondadotcom/mcp-confluence-server`
+2. **Global installation**: `npm install -g @aiondadotcom/mcp-confluence-server`
+3. **Local installation**: `npm install @aiondadotcom/mcp-confluence-server`
 
 ## License
 

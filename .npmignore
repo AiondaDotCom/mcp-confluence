@@ -1,0 +1,40 @@
+# Source files
+src/
+tsconfig.json
+jest.config.js
+
+# Development files
+.env
+config.json
+*.log
+
+# Git and CI
+.git/
+.github/
+.gitignore
+
+# Node modules and build artifacts
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+__tests__/
+
+# Development scripts
+start-server.sh
+
+# Documentation that's not needed in npm package
+mcp-confluence-server-blueprint.md

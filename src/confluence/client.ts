@@ -187,6 +187,10 @@ export class ConfluenceClient {
     // First retrieve the current page to get the version number
     const currentPage = await this.getPage(pageId, ['version']);
     
+    if (!currentPage.version) {
+      throw new Error('Unable to retrieve page version information');
+    }
+    
     const updateData = {
       id: pageId,
       type: 'page',
