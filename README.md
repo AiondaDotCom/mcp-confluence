@@ -30,7 +30,47 @@ No installation required! Use npx to run the server directly:
 }
 ```
 
-### Option 2: Local Development
+### Option 2: Manual Installation (Windows)
+
+For Windows users who want to preserve configuration between runs, manual installation is recommended:
+
+1. **Install the package globally:**
+   ```cmd
+   npm install -g @aiondadotcom/mcp-confluence-server
+   ```
+
+2. **Create a directory for the server:**
+   ```cmd
+   mkdir C:\mcp-confluence
+   cd C:\mcp-confluence
+   ```
+
+3. **Create a batch file `start-server.bat`:**
+   ```batch
+   @echo off
+   mcp-confluence-server
+   ```
+
+4. **Add to Claude Desktop configuration** (`%APPDATA%\Claude\claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "confluence": {
+         "command": "C:\\mcp-confluence\\start-server.bat",
+         "cwd": "C:\\mcp-confluence",
+         "args": [],
+         "env": {}
+       }
+     }
+   }
+   ```
+
+5. **Initial setup:**
+   - Start Claude Desktop
+   - Use the `setup_confluence` tool to configure your Confluence credentials
+   - The `config.json` will be saved in `C:\mcp-confluence` and persist between runs
+
+### Option 3: Local Development
 
 ```bash
 git clone https://github.com/AiondaDotCom/mcp-confluence.git
