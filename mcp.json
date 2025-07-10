@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "./start-server.sh"
+    }
+  }
+}
