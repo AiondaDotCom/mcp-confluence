@@ -32,53 +32,65 @@ export class ConfluenceMCPServer {
     this.setupHandlers();
   }
 
-  private processContent(content: string): string {
-    // If content is already in proper Atlassian format, return as is
-    if (content.includes('{info}') || content.includes('{panel}') || content.includes('{code}') || content.includes('h1.') || content.includes('h2.')) {
-      return content;
-    }
+  private validateStorageFormat(content: string): void {
+    // Check for Markdown syntax patterns
+    const markdownPatterns = [
+      /^#+\s/m,                    // Markdown headers
+      /\*\*.*\*\*/,              // Markdown bold
+      /\*[^*].*[^*]\*/,          // Markdown italic
+      /```[\s\S]*?```/,          // Markdown code blocks
+      /`[^`]+`/,                 // Markdown inline code
+      /^\s*[-*+]\s/m,           // Markdown unordered lists
+      /^\s*\d+\.\s/m,           // Markdown ordered lists
+      /\[.*?\]\(.*?\)/,          // Markdown links
+    ];
 
-    // If content looks like modern HTML (from new Confluence editor), return as is
-    if (content.includes('<h1>') || content.includes('<div class="confluence-information-macro">')) {
-      return content;
-    }
+    // Check for Atlassian Markup patterns
+    const atlassianPatterns = [
+      /^h[1-6]\./m,               // Atlassian headers
+      /\{info\}/,                // Atlassian info macro
+      /\{panel.*?\}/,            // Atlassian panel macro
+      /\{code.*?\}/,             // Atlassian code macro
+      /\{\{.*?\}\}/,             // Atlassian inline code
+      /\{tip\}/,                 // Atlassian tip macro
+      /\{warning\}/,             // Atlassian warning macro
+      /\{note\}/,                // Atlassian note macro
+    ];
 
-    // Convert common Markdown patterns to Atlassian Markup
-    let processedContent = content;
+    // Check for Storage Format patterns (XML-like)
+    const storageFormatPatterns = [
+      /<[^>]*>/,                  // XML tags
+      /<p>/,                      // Paragraph tags
+      /<ac:/,                     // Atlassian custom elements
+      /<ri:/,                     // Resource identifier elements
+    ];
 
-    // Convert headers
-    processedContent = processedContent.replace(/^# (.*)/gm, 'h1. $1');
-    processedContent = processedContent.replace(/^## (.*)/gm, 'h2. $1');
-    processedContent = processedContent.replace(/^### (.*)/gm, 'h3. $1');
-    processedContent = processedContent.replace(/^#### (.*)/gm, 'h4. $1');
-    processedContent = processedContent.replace(/^##### (.*)/gm, 'h5. $1');
-    processedContent = processedContent.replace(/^###### (.*)/gm, 'h6. $1');
-
-    // Convert bold and italic
-    processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '*$1*');
-    processedContent = processedContent.replace(/\*(.*?)\*/g, '_$1_');
-
-    // Convert code blocks
-    processedContent = processedContent.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      if (lang) {
-        return `{code:${lang}}\n${code.trim()}\n{code}`;
+    // Test for Markdown
+    for (const pattern of markdownPatterns) {
+      if (pattern.test(content)) {
+        throw new Error(`❌ MARKDOWN FORMAT DETECTED: This MCP server only accepts Confluence Storage Format (XML-based).\n\nPlease refer to the 'confluence://storage-format-spec' resource for the complete specification.\n\nExample Storage Format:\n<p>This is a paragraph with <strong>bold text</strong>.</p>\n<ac:structured-macro ac:name="info">\n  <ac:rich-text-body>\n    <p>This is an info box.</p>\n  </ac:rich-text-body>\n</ac:structured-macro>`);
       }
-      return `{code}\n${code.trim()}\n{code}`;
-    });
+    }
 
-    // Convert inline code
-    processedContent = processedContent.replace(/`([^`]+)`/g, '{{$1}}');
+    // Test for Atlassian Markup
+    for (const pattern of atlassianPatterns) {
+      if (pattern.test(content)) {
+        throw new Error(`❌ ATLASSIAN MARKUP FORMAT DETECTED: This MCP server only accepts Confluence Storage Format (XML-based).\n\nPlease refer to the 'confluence://storage-format-spec' resource for the complete specification.\n\nExample Storage Format:\n<p>This is a paragraph with <strong>bold text</strong>.</p>\n<ac:structured-macro ac:name="info">\n  <ac:rich-text-body>\n    <p>This is an info box.</p>\n  </ac:rich-text-body>\n</ac:structured-macro>`);
+      }
+    }
 
-    // Convert unordered lists
-    processedContent = processedContent.replace(/^[\s]*[-*+] (.*)/gm, '* $1');
+    // Test for Storage Format (should contain XML-like tags)
+    let hasStorageFormat = false;
+    for (const pattern of storageFormatPatterns) {
+      if (pattern.test(content)) {
+        hasStorageFormat = true;
+        break;
+      }
+    }
 
-    // Convert ordered lists
-    processedContent = processedContent.replace(/^[\s]*\d+\. (.*)/gm, '# $1');
-
-    // Convert links
-    processedContent = processedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '[$1|$2]');
-
-    return processedContent;
+    if (!hasStorageFormat) {
+      throw new Error(`❌ INVALID FORMAT: Content must be in Confluence Storage Format (XML-based).\n\nPlease refer to the 'confluence://storage-format-spec' resource for the complete specification.\n\nExample Storage Format:\n<p>This is a paragraph with <strong>bold text</strong>.</p>\n<ac:structured-macro ac:name="info">\n  <ac:rich-text-body>\n    <p>This is an info box.</p>\n  </ac:rich-text-body>\n</ac:structured-macro>`);
+    }
   }
 
   private async ensureConfigured(): Promise<void> {
@@ -201,7 +213,7 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'create_page',
-          description: 'Creates a new Confluence page. Content can be in Markdown or Atlassian Markup Format - will be automatically converted.',
+          description: 'Creates a new Confluence page. Content MUST be in Confluence Storage Format (XML-based). Markdown and Atlassian Markup are NOT supported. See the \'confluence://storage-format-spec\' resource for the complete specification.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -215,7 +227,7 @@ export class ConfluenceMCPServer {
               },
               content: {
                 type: 'string',
-                description: 'Page content in Markdown or Atlassian Markup Format. Will be automatically converted to the appropriate format.',
+                description: 'Page content in Confluence Storage Format (XML-based) ONLY. Markdown and Atlassian Markup are NOT supported. See the \'confluence://storage-format-spec\' resource for the complete specification.',
               },
               parentId: {
                 type: 'string',
@@ -227,7 +239,7 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'update_page',
-          description: 'Updates an existing Confluence page. Content can be in Markdown or Atlassian Markup Format - will be automatically converted.',
+          description: 'Updates an existing Confluence page. Content MUST be in Confluence Storage Format (XML-based). Markdown and Atlassian Markup are NOT supported. See the \'confluence://storage-format-spec\' resource for the complete specification.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -241,7 +253,7 @@ export class ConfluenceMCPServer {
               },
               content: {
                 type: 'string',
-                description: 'New page content in Markdown or Atlassian Markup Format. Will be automatically converted to the appropriate format.',
+                description: 'New page content in Confluence Storage Format (XML-based) ONLY. Markdown and Atlassian Markup are NOT supported. See the \'confluence://storage-format-spec\' resource for the complete specification.',
               },
             },
             required: ['pageId', 'content'],
@@ -297,6 +309,12 @@ export class ConfluenceMCPServer {
           name: 'Current User',
           description: 'Information about the current user',
           mimeType: 'application/json',
+        },
+        {
+          uri: 'confluence://storage-format-spec',
+          name: 'Confluence Storage Format Specification',
+          description: 'Complete specification for Confluence Storage Format (XML-based content format)',
+          mimeType: 'text/markdown',
         },
       ],
     }));
@@ -360,6 +378,8 @@ export class ConfluenceMCPServer {
             return await this.handleGetRecentPagesResource();
           case 'confluence://user':
             return await this.handleGetUserResource();
+          case 'confluence://storage-format-spec':
+            return await this.handleGetStorageFormatSpec();
           default:
             throw new Error(`Unknown resource: ${uri}`);
         }
@@ -498,11 +518,11 @@ export class ConfluenceMCPServer {
 
     const { spaceKey, title, content, parentId } = schema.parse(args);
 
-    // Convert content to appropriate format
-    const processedContent = this.processContent(content);
+    // Validate content format
+    this.validateStorageFormat(content);
 
     try {
-      const page = await this.confluenceClient!.createPage(spaceKey, title, processedContent, parentId);
+      const page = await this.confluenceClient!.createPage(spaceKey, title, content, parentId);
       return {
         content: [
           {
@@ -532,11 +552,11 @@ export class ConfluenceMCPServer {
 
     const { pageId, title, content } = schema.parse(args);
 
-    // Convert content to appropriate format
-    const processedContent = this.processContent(content);
+    // Validate content format
+    this.validateStorageFormat(content);
 
     try {
-      const page = await this.confluenceClient!.updatePage(pageId, title, processedContent);
+      const page = await this.confluenceClient!.updatePage(pageId, title, content);
       return {
         content: [
           {
@@ -683,6 +703,197 @@ export class ConfluenceMCPServer {
           uri: 'confluence://user',
           mimeType: 'application/json',
           text: JSON.stringify(user, null, 2),
+        },
+      ],
+    };
+  }
+
+  private async handleGetStorageFormatSpec() {
+    const specification = `# Confluence Storage Format Specification
+
+## Overview
+The Confluence Storage Format is an XML-based markup language used to store and represent content in Confluence, including pages, blog posts, comments, and templates.
+
+## Key Characteristics
+- XML-based, but not strictly XHTML compliant
+- Includes custom elements for macros and special formatting
+- Supports rich text, links, images, tables, layouts, and more
+
+## Major XML Elements and Formatting
+
+### 1. Text Formatting
+- **Headings**: \`<h1>\`, \`<h2>\`, \`<h3>\` through \`<h6>\`
+- **Text Effects**: \`<strong>\`, \`<em>\`, \`<u>\`, \`<sup>\`, \`<sub>\`, \`<code>\`
+- **Alignment**: \`<p style="text-align: center/right">\`
+- **Line Breaks**: \`<br/>\`
+
+### 2. Paragraphs
+- Basic paragraph: \`<p>Content here</p>\`
+- Styled paragraph: \`<p style="text-align: center">Centered text</p>\`
+
+### 3. Lists
+- **Unordered**: \`<ul><li>Item 1</li><li>Item 2</li></ul>\`
+- **Ordered**: \`<ol><li>First item</li><li>Second item</li></ol>\`
+- **Task Lists**: 
+  \`\`\`xml
+  <ac:task-list>
+    <ac:task>
+      <ac:task-status>COMPLETE</ac:task-status>
+      <ac:task-body>Completed task</ac:task-body>
+    </ac:task>
+    <ac:task>
+      <ac:task-status>INCOMPLETE</ac:task-status>
+      <ac:task-body>Incomplete task</ac:task-body>
+    </ac:task>
+  </ac:task-list>
+  \`\`\`
+
+### 4. Links
+- **Confluence Page**: 
+  \`\`\`xml
+  <ac:link>
+    <ri:page ri:content-title="Page Title"/>
+    <ac:plain-text-link-body>Link Text</ac:plain-text-link-body>
+  </ac:link>
+  \`\`\`
+- **External**: \`<a href="https://example.com">Link text</a>\`
+- **Attachments**: 
+  \`\`\`xml
+  <ac:link>
+    <ri:attachment ri:filename="document.pdf"/>
+    <ac:plain-text-link-body>Download PDF</ac:plain-text-link-body>
+  </ac:link>
+  \`\`\`
+
+### 5. Images
+- **Attached Image**: 
+  \`\`\`xml
+  <ac:image>
+    <ri:attachment ri:filename="image.png"/>
+  </ac:image>
+  \`\`\`
+- **External Image**: 
+  \`\`\`xml
+  <ac:image>
+    <ri:url ri:value="https://example.com/image.png"/>
+  </ac:image>
+  \`\`\`
+
+### 6. Tables
+Standard HTML table structure:
+\`\`\`xml
+<table>
+  <tbody>
+    <tr>
+      <th>Header 1</th>
+      <th>Header 2</th>
+    </tr>
+    <tr>
+      <td>Cell 1</td>
+      <td>Cell 2</td>
+    </tr>
+  </tbody>
+</table>
+\`\`\`
+
+### 7. Macros (Structured Macros)
+- **Info Macro**: 
+  \`\`\`xml
+  <ac:structured-macro ac:name="info">
+    <ac:rich-text-body>
+      <p>This is an info box.</p>
+    </ac:rich-text-body>
+  </ac:structured-macro>
+  \`\`\`
+- **Warning Macro**: 
+  \`\`\`xml
+  <ac:structured-macro ac:name="warning">
+    <ac:rich-text-body>
+      <p>This is a warning.</p>
+    </ac:rich-text-body>
+  </ac:structured-macro>
+  \`\`\`
+- **Code Macro**: 
+  \`\`\`xml
+  <ac:structured-macro ac:name="code">
+    <ac:parameter ac:name="language">javascript</ac:parameter>
+    <ac:plain-text-body>
+      console.log("Hello World");
+    </ac:plain-text-body>
+  </ac:structured-macro>
+  \`\`\`
+
+### 8. Page Layouts
+- **Layout Structure**: 
+  \`\`\`xml
+  <ac:layout>
+    <ac:layout-section ac:type="two_equal">
+      <ac:layout-cell>
+        <p>Left column content</p>
+      </ac:layout-cell>
+      <ac:layout-cell>
+        <p>Right column content</p>
+      </ac:layout-cell>
+    </ac:layout-section>
+  </ac:layout>
+  \`\`\`
+
+### 9. Resource Identifiers
+Resource identifiers represent links to pages, blog posts, attachments, users, spaces:
+- \`<ri:page ri:content-title="Page Title"/>\`
+- \`<ri:attachment ri:filename="file.pdf"/>\`
+- \`<ri:user ri:userkey="username"/>\`
+- \`<ri:space ri:space-key="SPACEKEY"/>\`
+
+## Example Complete Page
+\`\`\`xml
+<p>This is a paragraph with <strong>bold text</strong> and <em>italic text</em>.</p>
+
+<h2>Section Header</h2>
+
+<ac:structured-macro ac:name="info">
+  <ac:rich-text-body>
+    <p>This is an information box with important details.</p>
+  </ac:rich-text-body>
+</ac:structured-macro>
+
+<ul>
+  <li>First bullet point</li>
+  <li>Second bullet point</li>
+  <li>Third bullet point</li>
+</ul>
+
+<p>Here's a link to <ac:link><ri:page ri:content-title="Another Page"/><ac:plain-text-link-body>another page</ac:plain-text-link-body></ac:link>.</p>
+
+<ac:structured-macro ac:name="code">
+  <ac:parameter ac:name="language">python</ac:parameter>
+  <ac:plain-text-body>
+def hello_world():
+    print("Hello, World!")
+  </ac:plain-text-body>
+</ac:structured-macro>
+\`\`\`
+
+## Important Notes
+- All content must be properly XML-escaped
+- Custom namespaces: \`ac:\` for Atlassian custom elements, \`ri:\` for resource identifiers
+- Macros use \`ac:structured-macro\` with parameters and body content
+- Links to Confluence content use resource identifiers rather than URLs
+- Always close XML tags properly
+- Use proper nesting of elements
+
+## Common Mistakes to Avoid
+- Don't use Markdown syntax (##, **, \`\`\`)
+- Don't use Atlassian Markup syntax (h1., {info}, {code})
+- Don't forget to close XML tags
+- Don't use unescaped special characters in text content`;
+
+    return {
+      contents: [
+        {
+          uri: 'confluence://storage-format-spec',
+          mimeType: 'text/markdown',
+          text: specification,
         },
       ],
     };
