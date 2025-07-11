@@ -32,6 +32,55 @@ export class ConfluenceMCPServer {
     this.setupHandlers();
   }
 
+  private processContent(content: string): string {
+    // If content is already in proper Atlassian format, return as is
+    if (content.includes('{info}') || content.includes('{panel}') || content.includes('{code}') || content.includes('h1.') || content.includes('h2.')) {
+      return content;
+    }
+
+    // If content looks like modern HTML (from new Confluence editor), return as is
+    if (content.includes('<h1>') || content.includes('<div class="confluence-information-macro">')) {
+      return content;
+    }
+
+    // Convert common Markdown patterns to Atlassian Markup
+    let processedContent = content;
+
+    // Convert headers
+    processedContent = processedContent.replace(/^# (.*)/gm, 'h1. $1');
+    processedContent = processedContent.replace(/^## (.*)/gm, 'h2. $1');
+    processedContent = processedContent.replace(/^### (.*)/gm, 'h3. $1');
+    processedContent = processedContent.replace(/^#### (.*)/gm, 'h4. $1');
+    processedContent = processedContent.replace(/^##### (.*)/gm, 'h5. $1');
+    processedContent = processedContent.replace(/^###### (.*)/gm, 'h6. $1');
+
+    // Convert bold and italic
+    processedContent = processedContent.replace(/\*\*(.*?)\*\*/g, '*$1*');
+    processedContent = processedContent.replace(/\*(.*?)\*/g, '_$1_');
+
+    // Convert code blocks
+    processedContent = processedContent.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+      if (lang) {
+        return `{code:${lang}}\n${code.trim()}\n{code}`;
+      }
+      return `{code}\n${code.trim()}\n{code}`;
+    });
+
+    // Convert inline code
+    processedContent = processedContent.replace(/`([^`]+)`/g, '{{$1}}');
+
+    // Convert unordered lists
+    processedContent = processedContent.replace(/^[\s]*[-*+] (.*)/gm, '* $1');
+
+    // Convert ordered lists
+    processedContent = processedContent.replace(/^[\s]*\d+\. (.*)/gm, '# $1');
+
+    // Convert links
+    processedContent = processedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '[$1|$2]');
+
+    return processedContent;
+  }
+
   private async ensureConfigured(): Promise<void> {
     if (this.confluenceClient) {
       return; // Already configured
@@ -152,7 +201,7 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'create_page',
-          description: '⚠️ IMPORTANT: Creates a new Confluence page. Content MUST be in Atlassian Markup Format! Standard Markdown is NOT supported!',
+          description: 'Creates a new Confluence page. Content can be in Markdown or Atlassian Markup Format - will be automatically converted.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -166,7 +215,7 @@ export class ConfluenceMCPServer {
               },
               content: {
                 type: 'string',
-                description: '⚠️ CRITICAL: Page content in Atlassian Markup Format (not Markdown!). Example: {info}This is an info box{info}',
+                description: 'Page content in Markdown or Atlassian Markup Format. Will be automatically converted to the appropriate format.',
               },
               parentId: {
                 type: 'string',
@@ -178,7 +227,7 @@ export class ConfluenceMCPServer {
         },
         {
           name: 'update_page',
-          description: '⚠️ IMPORTANT: Updates an existing Confluence page. Content MUST be in Atlassian Markup Format! Standard Markdown is NOT supported!',
+          description: 'Updates an existing Confluence page. Content can be in Markdown or Atlassian Markup Format - will be automatically converted.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -192,7 +241,7 @@ export class ConfluenceMCPServer {
               },
               content: {
                 type: 'string',
-                description: '⚠️ CRITICAL: New page content in Atlassian Markup Format (not Markdown!). Example: {panel}Content{panel}',
+                description: 'New page content in Markdown or Atlassian Markup Format. Will be automatically converted to the appropriate format.',
               },
             },
             required: ['pageId', 'content'],
@@ -449,28 +498,11 @@ export class ConfluenceMCPServer {
 
     const { spaceKey, title, content, parentId } = schema.parse(args);
 
-    // Strong warning about Atlassian Markup Format
-    if (content.includes('```') || content.includes('##') || content.includes('**')) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: '⚠️ ERROR: The provided content appears to contain Markdown! Confluence uses Atlassian Markup Format, not standard Markdown.\n\n' +
-                  'Examples of Atlassian Markup:\n' +
-                  '- Headings: h1. Heading\n' +
-                  '- Bold: *bold*\n' +
-                  '- Italic: _italic_\n' +
-                  '- Info Box: {info}Content{info}\n' +
-                  '- Panel: {panel}Content{panel}\n' +
-                  '- Code: {code}code{code}\n\n' +
-                  'Please convert the content to Atlassian Markup Format!',
-          },
-        ],
-      };
-    }
+    // Convert content to appropriate format
+    const processedContent = this.processContent(content);
 
     try {
-      const page = await this.confluenceClient!.createPage(spaceKey, title, content, parentId);
+      const page = await this.confluenceClient!.createPage(spaceKey, title, processedContent, parentId);
       return {
         content: [
           {
@@ -484,7 +516,7 @@ export class ConfluenceMCPServer {
         content: [
           {
             type: 'text',
-            text: `❌ Error creating page: ${error.message}\n\n⚠️ Please ensure the content is in Atlassian Markup Format!`,
+            text: `❌ Error creating page: ${error.message}`,
           },
         ],
       };
@@ -500,28 +532,11 @@ export class ConfluenceMCPServer {
 
     const { pageId, title, content } = schema.parse(args);
 
-    // Strong warning about Atlassian Markup Format
-    if (content.includes('```') || content.includes('##') || content.includes('**')) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: '⚠️ ERROR: The provided content appears to contain Markdown! Confluence uses Atlassian Markup Format, not standard Markdown.\n\n' +
-                  'Examples of Atlassian Markup:\n' +
-                  '- Headings: h1. Heading\n' +
-                  '- Bold: *bold*\n' +
-                  '- Italic: _italic_\n' +
-                  '- Info Box: {info}Content{info}\n' +
-                  '- Panel: {panel}Content{panel}\n' +
-                  '- Code: {code}code{code}\n\n' +
-                  'Please convert the content to Atlassian Markup Format!',
-          },
-        ],
-      };
-    }
+    // Convert content to appropriate format
+    const processedContent = this.processContent(content);
 
     try {
-      const page = await this.confluenceClient!.updatePage(pageId, title, content);
+      const page = await this.confluenceClient!.updatePage(pageId, title, processedContent);
       return {
         content: [
           {
@@ -535,7 +550,7 @@ export class ConfluenceMCPServer {
         content: [
           {
             type: 'text',
-            text: `❌ Error updating page: ${error.message}\n\n⚠️ Please ensure the content is in Atlassian Markup Format!`,
+            text: `❌ Error updating page: ${error.message}`,
           },
         ],
       };

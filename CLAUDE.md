@@ -139,25 +139,33 @@ src/
 - Rate limiting configured for 100 requests per minute
 - All user-facing messages are in English
 
-## Atlassian Markup Format
+## Content Format Support
 
-When working with page content, always use Atlassian Markup Format:
+The MCP server now supports both Markdown and Atlassian Markup Format:
 
-**Correct Format:**
+**Markdown Support (Automatically Converted):**
+```markdown
+# Heading
+## Subheading
+**bold text**
+*italic text*
+- bullet points
+1. numbered lists
+`inline code`
+```
+
+**Atlassian Markup Format:**
 ```
 h1. Heading
+h2. Subheading
 *bold text*
 _italic text_
+* bullet points
+# numbered lists
+{{inline code}}
 {info}Info box content{info}
 {panel}Panel content{panel}
 {code}code block{code}
 ```
 
-**Avoid Markdown:**
-```
-# Heading (WRONG)
-**bold text** (WRONG)
-*italic text* (WRONG)
-```
-
-The tools automatically detect Markdown syntax and provide helpful error messages with format examples.
+The server automatically converts Markdown to Atlassian Markup Format when creating or updating pages.
