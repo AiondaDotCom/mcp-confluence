@@ -2,7 +2,7 @@
   "mcpServers": {
     "confluence": {
       "command": "npx",
-      "args": ["@aiondadotcom/mcp-confluence-server"],
+      "args": ["@aiondadotcom/mcp-confluence-server@latest"],
       "env": {}
     }
   }
