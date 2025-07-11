@@ -64,8 +64,11 @@ export class ConfluenceClient {
           throw new RateLimitError('Rate limit exceeded. Please wait a moment.');
         }
         
+        const errorMessage = (error.response?.data as any)?.message || error.response?.data || error.message;
+        const detailedMessage = typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage);
+        
         throw new ConfluenceAPIError(
-          error.message,
+          `${error.message} - Details: ${detailedMessage}`,
           error.response?.status,
           error.response?.data
         );
@@ -184,31 +187,68 @@ export class ConfluenceClient {
   }
 
   async updatePage(pageId: string, title?: string, content?: string): Promise<ConfluencePage> {
-    // First retrieve the current page to get the version number
-    const currentPage = await this.getPage(pageId, ['version']);
+    // First retrieve the current page to get the version number, space, and current content
+    const currentPage = await this.getPage(pageId, ['version', 'space', 'body.storage']);
     
     if (!currentPage.version) {
       throw new Error('Unable to retrieve page version information');
     }
     
+    if (!currentPage.space) {
+      throw new Error('Unable to retrieve page space information');
+    }
+
+    // Use current content if no new content is provided
+    const currentContent = currentPage.body?.storage?.value || '';
+    const finalContent = content !== undefined ? content : currentContent;
+    const finalTitle = title !== undefined ? title : currentPage.title;
+
+    // Validate that we have content to set
+    if (finalContent === '') {
+      throw new Error('Cannot update page with empty content. Provide content or ensure the page has existing content.');
+    }
+    
     const updateData = {
       id: pageId,
       type: 'page',
+      title: finalTitle,
+      space: {
+        key: currentPage.space.key,
+      },
+      body: {
+        storage: {
+          value: finalContent,
+          representation: 'storage',
+        },
+      },
       version: {
         number: currentPage.version.number + 1,
       },
-      ...(title && { title }),
-      ...(content && {
-        body: {
-          storage: {
-            value: content,
-            representation: 'storage',
-          },
-        },
-      }),
     };
 
-    const response = await this.client.put(`/content/${pageId}`, updateData);
-    return response.data;
+    console.log('Update request payload:', JSON.stringify(updateData, null, 2));
+    
+    try {
+      const response = await this.client.put(`/content/${pageId}`, updateData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Update error details:', error.response?.data);
+      
+      // Handle version conflict specifically
+      if (error.response?.status === 409) {
+        throw new Error('Version conflict: The page was modified by another user. Please try again.');
+      }
+      
+      // Handle validation errors  
+      if (error.response?.status === 400) {
+        const errorData = error.response?.data;
+        if (errorData?.message?.includes('version')) {
+          throw new Error('Version error: ' + errorData.message);
+        }
+        throw new Error('Validation error: ' + (errorData?.message || 'Invalid request data'));
+      }
+      
+      throw error;
+    }
   }
 }
