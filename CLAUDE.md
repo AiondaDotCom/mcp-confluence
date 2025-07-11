@@ -57,6 +57,9 @@ npm run format
 - Handles authentication, rate limiting, and error recovery
 - Implements automatic token refresh and retry logic
 - Supports CQL queries, page operations, space management, and write operations
+- Enhanced error handling with detailed error messages and debugging information
+- Improved page update functionality with version conflict detection
+- Comprehensive validation for page update operations
 
 **Configuration System (`src/config/index.ts`)**
 - Zod-based configuration validation and management
@@ -77,6 +80,8 @@ npm run format
 - Provides 9 tools: search, page/space operations, setup, create/update pages
 - Exposes 3 resources: spaces, recent pages, user info
 - Error handling with user-friendly English messages
+- Robust error recovery with detailed debugging information
+- Version conflict detection for concurrent page modifications
 
 **API Operations**
 - CQL-based content search with flexible queries
@@ -90,6 +95,9 @@ npm run format
 - Automatic detection of Markdown syntax with helpful error messages
 - Strong warnings about Atlassian Markup Format requirements
 - Examples provided for proper format usage
+- Enhanced page update with complete field validation (space, title, body)
+- Version conflict detection and resolution guidance
+- Comprehensive error reporting for debugging failed operations
 
 ### Project Structure
 
@@ -169,3 +177,25 @@ _italic text_
 ```
 
 The server automatically converts Markdown to Atlassian Markup Format when creating or updating pages.
+
+## Error Handling & Debugging
+
+The MCP server includes comprehensive error handling:
+
+**Enhanced Error Reporting:**
+- Detailed error messages with context and debugging information
+- Specific error types for different failure scenarios (authentication, validation, network)
+- Version conflict detection for concurrent page modifications
+- Clear guidance for resolving common issues
+
+**Debugging Features:**
+- Comprehensive logging of API requests and responses
+- Error context preservation for troubleshooting
+- User-friendly error messages with actionable solutions
+- Automatic retry logic for transient failures
+
+**Common Error Scenarios:**
+- Version conflicts when multiple users edit the same page
+- Authentication failures with token expiration guidance
+- Validation errors with specific field requirements
+- Network connectivity issues with retry recommendations
